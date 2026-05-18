@@ -5,8 +5,9 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:HappyGame"
         mc:Ignorable="d"
-        Title="MainWindow" Height="650" Width="840" WindowStartupLocation="CenterScreen" WindowStyle="None" KeyDown="Window_KeyDown">
+        Title="MainWindow" Height="650" Width="840" ResizeMode="NoResize" WindowStartupLocation="CenterScreen" WindowStyle="None"  KeyDown="Window_KeyDown">
     <Grid>
-        
+        <Image Height="650" Width="840" Source="/Images/road.png"/>
+        <Image Height="150" Width="200" Source="/Images/yellowcar.png"/>
     </Grid>
 </Window>
