@@ -19,10 +19,15 @@ namespace HappyGame
 {
     public partial class MainWindow : Window
     {
+        private double carSpeed = 10;
+        private double carMinLeft = 100;
+        private double carMaxLeft = 540;
+
         public MainWindow()
         {
             InitializeComponent();
             StartRoadAnimation();
+            GameCanvas.Focus();
         }
 
         private void Window_KeyDown(object sender, KeyEventArgs e)
@@ -30,6 +35,24 @@ namespace HappyGame
             if (e.Key == Key.Escape)
             {
                 this.Close();
+            }
+
+            if (e.Key == Key.Left || e.Key == Key.A)
+            {
+                MoveCar(-carSpeed);
+            }
+            else if (e.Key == Key.Right || e.Key == Key.D)
+            {
+                MoveCar(carSpeed);
+            }
+        }
+
+        private void MoveCar(double offset)
+        {
+            double newLeft = Canvas.GetLeft(Car) + offset;
+            if (newLeft >= carMinLeft && newLeft <= carMaxLeft)
+            {
+                Canvas.SetLeft(Car, newLeft);
             }
         }
 

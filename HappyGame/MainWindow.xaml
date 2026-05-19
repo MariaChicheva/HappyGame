@@ -9,6 +9,6 @@
     <Canvas x:Name="GameCanvas" Width="840" Height="650" ClipToBounds="True">
         <Image x:Name="Road" Canvas.Top="0" Height="650" Width="840" Source="/Images/road.png"/>
         <Image x:Name="RoadBack" Canvas.Top="-650" Height="650" Width="840" Source="/Images/road.png"/>
-        <Image Height="150" Width="200" Source="/Images/yellowcar.png" Margin="515,474,125,26"/>
+        <Image x:Name="Car" Height="150" Width="200" Source="/Images/yellowcar.png"  Canvas.Left="320" Canvas.Top="474"/>
     </Canvas>
 </Window>
