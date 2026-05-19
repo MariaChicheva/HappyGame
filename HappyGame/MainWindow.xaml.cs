@@ -23,11 +23,23 @@ namespace HappyGame
         private double carMinLeft = 100;
         private double carMaxLeft = 540;
 
+        private double roadAnimationSpeed = 5;
+        private double roadHeight = 648.5;
+
+        private double currentRoadTop = 0;
+        private double currentRoadBackTop = -648.5;
+
+        private DispatcherTimer animationTimer;
+        private DispatcherTimer speedChangeTimer;
+        private double targetRoadSpeed = 5;
+        private bool isSpeedChanging = false;
+
         public MainWindow()
         {
             InitializeComponent();
             StartRoadAnimation();
             GameCanvas.Focus();
+            UpdateSpeedDisplay();
         }
 
         private void Window_KeyDown(object sender, KeyEventArgs e)
@@ -45,6 +57,14 @@ namespace HappyGame
             {
                 MoveCar(carSpeed);
             }
+            else if (e.Key == Key.W)
+            {
+                IncreaseSpeed();
+            }
+            else if (e.Key == Key.S)
+            {
+                DecreaseSpeed();
+            }
         }
 
         private void MoveCar(double offset)
@@ -56,25 +76,118 @@ namespace HappyGame
             }
         }
 
+        private void IncreaseSpeed()
+        {
+            if (carSpeed < 30)
+            {
+                double targetCarSpeed = Math.Min(carSpeed + 2, 30);
+                double targetRoadSpeed = Math.Min(roadAnimationSpeed + 0.5, 10);
+
+                SmoothSpeedChange(targetCarSpeed, targetRoadSpeed);
+            }
+        }
+
+        private void DecreaseSpeed()
+        {
+            if (carSpeed > 4)
+            {
+                double targetCarSpeed = Math.Max(carSpeed - 2, 4);
+                double targetRoadSpeed = Math.Max(roadAnimationSpeed - 0.5, 2);
+
+                SmoothSpeedChange(targetCarSpeed, targetRoadSpeed);
+            }
+        }
+
+        private void SmoothSpeedChange(double targetCarSpeed, double targetRoadSpeed)
+        {
+            if (speedChangeTimer != null)
+            {
+                speedChangeTimer.Stop();
+            }
+
+            isSpeedChanging = true;
+            double startCarSpeed = carSpeed;
+            double startRoadSpeed = roadAnimationSpeed;
+            double startTime = 0;
+            double duration = 0.3;
+
+            speedChangeTimer = new DispatcherTimer();
+            speedChangeTimer.Interval = TimeSpan.FromMilliseconds(16);
+            DateTime changeStartTime = DateTime.Now;
+
+            speedChangeTimer.Tick += (s, e) =>
+            {
+                double elapsed = (DateTime.Now - changeStartTime).TotalSeconds;
+                double t = Math.Min(1.0, elapsed / duration);
+
+                double easeOut = 1 - Math.Pow(1 - t, 3);
+
+                carSpeed = startCarSpeed + (targetCarSpeed - startCarSpeed) * easeOut;
+                roadAnimationSpeed = startRoadSpeed + (targetRoadSpeed - startRoadSpeed) * easeOut;
+
+                UpdateSpeedDisplay();
+
+                if (t >= 1.0)
+                {
+                    carSpeed = targetCarSpeed;
+                    roadAnimationSpeed = targetRoadSpeed;
+                    speedChangeTimer.Stop();
+                    isSpeedChanging = false;
+                    UpdateSpeedDisplay();
+                }
+            };
+
+            speedChangeTimer.Start();
+        }
+
         private void StartRoadAnimation()
         {
-            double roadHeight = 648.5;
+            Canvas.SetTop(Road, currentRoadTop);
+            Canvas.SetTop(RoadBack, currentRoadBackTop);
 
-            DoubleAnimation anim = new DoubleAnimation();
-            anim.From = 0;
-            anim.To = roadHeight;
-            anim.Duration = TimeSpan.FromSeconds(5);
-            anim.RepeatBehavior = RepeatBehavior.Forever;
+            animationTimer = new DispatcherTimer();
+            animationTimer.Interval = TimeSpan.FromMilliseconds(16);
+            animationTimer.Tick += UpdateRoadAnimation;
+            animationTimer.Start();
+        }
 
-            Road.BeginAnimation(Canvas.TopProperty, anim);
+        private void UpdateRoadAnimation(object sender, EventArgs e)
+        {
+            double delta = roadAnimationSpeed * animationTimer.Interval.TotalSeconds * 100;
 
-            DoubleAnimation anim2 = new DoubleAnimation();
-            anim2.From = -roadHeight;
-            anim2.To = 0;
-            anim2.Duration = TimeSpan.FromSeconds(5);
-            anim2.RepeatBehavior = RepeatBehavior.Forever;
+            currentRoadTop += delta;
+            currentRoadBackTop += delta;
 
-            RoadBack.BeginAnimation(Canvas.TopProperty, anim2);
+            if (currentRoadTop >= roadHeight)
+            {
+                currentRoadTop = -roadHeight;
+            }
+
+            if (currentRoadBackTop >= roadHeight)
+            {
+                currentRoadBackTop = -roadHeight;
+            }
+
+            Canvas.SetTop(Road, currentRoadTop);
+            Canvas.SetTop(RoadBack, currentRoadBackTop);
+        }
+
+        private void UpdateSpeedDisplay()//добавить позже, пока тестим
+        {
+            this.Title = $"Happy Game - Speed: {carSpeed:F1}";
+        }
+
+        protected override void OnClosed(EventArgs e)
+        {
+            base.OnClosed(e);
+            if (animationTimer != null)
+            {
+                animationTimer.Stop();
+            }
+            if (speedChangeTimer != null)
+            {
+                speedChangeTimer.Stop();
+            }
         }
     }
 }
