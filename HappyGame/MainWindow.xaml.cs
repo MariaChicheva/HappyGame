@@ -1,18 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
 using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Animation;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 using System.Windows.Threading;
 
 namespace HappyGame
@@ -37,8 +26,13 @@ namespace HappyGame
         public MainWindow()
         {
             InitializeComponent();
+
+            Canvas.SetTop(Road, currentRoadTop);
+            Canvas.SetTop(RoadBack, currentRoadBackTop);
+
             StartRoadAnimation();
             GameCanvas.Focus();
+
             UpdateSpeedDisplay();
         }
 
@@ -78,10 +72,10 @@ namespace HappyGame
 
         private void IncreaseSpeed()
         {
-            if (carSpeed < 30)
+            if (carSpeed < 300)
             {
-                double targetCarSpeed = Math.Min(carSpeed + 2, 30);
-                double targetRoadSpeed = Math.Min(roadAnimationSpeed + 0.5, 10);
+                double targetCarSpeed = Math.Min(carSpeed + 5, 40);
+                double targetRoadSpeed = Math.Min(roadAnimationSpeed + 0.9, 20);
 
                 SmoothSpeedChange(targetCarSpeed, targetRoadSpeed);
             }
@@ -91,8 +85,8 @@ namespace HappyGame
         {
             if (carSpeed > 4)
             {
-                double targetCarSpeed = Math.Max(carSpeed - 2, 4);
-                double targetRoadSpeed = Math.Max(roadAnimationSpeed - 0.5, 2);
+                double targetCarSpeed = Math.Max(carSpeed - 5, 9);
+                double targetRoadSpeed = Math.Max(roadAnimationSpeed - 0.9, 2);
 
                 SmoothSpeedChange(targetCarSpeed, targetRoadSpeed);
             }
@@ -108,7 +102,6 @@ namespace HappyGame
             isSpeedChanging = true;
             double startCarSpeed = carSpeed;
             double startRoadSpeed = roadAnimationSpeed;
-            double startTime = 0;
             double duration = 0.3;
 
             speedChangeTimer = new DispatcherTimer();
@@ -142,9 +135,6 @@ namespace HappyGame
 
         private void StartRoadAnimation()
         {
-            Canvas.SetTop(Road, currentRoadTop);
-            Canvas.SetTop(RoadBack, currentRoadBackTop);
-
             animationTimer = new DispatcherTimer();
             animationTimer.Interval = TimeSpan.FromMilliseconds(16);
             animationTimer.Tick += UpdateRoadAnimation;
@@ -153,26 +143,36 @@ namespace HappyGame
 
         private void UpdateRoadAnimation(object sender, EventArgs e)
         {
-            double delta = roadAnimationSpeed * animationTimer.Interval.TotalSeconds * 100;
+            double delta = roadAnimationSpeed * animationTimer.Interval.TotalSeconds * 60;
 
             currentRoadTop += delta;
             currentRoadBackTop += delta;
 
             if (currentRoadTop >= roadHeight)
             {
-                currentRoadTop = -roadHeight;
+                currentRoadTop = currentRoadBackTop - roadHeight;
             }
 
             if (currentRoadBackTop >= roadHeight)
             {
-                currentRoadBackTop = -roadHeight;
+                currentRoadBackTop = currentRoadTop - roadHeight;
+            }
+
+            if (currentRoadTop < -roadHeight)
+            {
+                currentRoadTop = currentRoadBackTop + roadHeight;
+            }
+
+            if (currentRoadBackTop < -roadHeight)
+            {
+                currentRoadBackTop = currentRoadTop + roadHeight;
             }
 
             Canvas.SetTop(Road, currentRoadTop);
             Canvas.SetTop(RoadBack, currentRoadBackTop);
         }
 
-        private void UpdateSpeedDisplay()//добавить позже, пока тестим
+        private void UpdateSpeedDisplay()
         {
             this.Title = $"Happy Game - Speed: {carSpeed:F1}";
         }
