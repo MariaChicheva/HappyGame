@@ -1,8 +1,11 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Threading;
+using System.Windows.Media;
+using System.Windows.Shapes;
 
 namespace HappyGame
 {
@@ -20,20 +23,31 @@ namespace HappyGame
 
         private DispatcherTimer animationTimer;
         private DispatcherTimer speedChangeTimer;
+        private DispatcherTimer coinSpawnTimer;
         private double targetRoadSpeed = 5;
         private bool isSpeedChanging = false;
+
+        // Система монеток
+        private List<Coin> coins = new List<Coin>();
+        private int coinScore = 0;
+        private Random random = new Random();
+        private double coinSpawnInterval = 1.0;
+        private double coinSize = 30;
+        private double coinBaseSpeed = 5;
 
         public MainWindow()
         {
             InitializeComponent();
+            GameCanvas.Focus();
 
             Canvas.SetTop(Road, currentRoadTop);
             Canvas.SetTop(RoadBack, currentRoadBackTop);
 
             StartRoadAnimation();
-            GameCanvas.Focus();
+            StartCoinSpawning();
 
             UpdateSpeedDisplay();
+            UpdateCoinDisplay();
         }
 
         private void Window_KeyDown(object sender, KeyEventArgs e)
@@ -170,11 +184,192 @@ namespace HappyGame
 
             Canvas.SetTop(Road, currentRoadTop);
             Canvas.SetTop(RoadBack, currentRoadBackTop);
+
+            UpdateCoinsPosition(delta);
+            CheckCoinCollection();
+        }
+
+        private void StartCoinSpawning()
+        {
+            coinSpawnTimer = new DispatcherTimer();
+            coinSpawnTimer.Interval = TimeSpan.FromSeconds(coinSpawnInterval);
+            coinSpawnTimer.Tick += SpawnCoin;
+            coinSpawnTimer.Start();
+        }
+
+        private void SpawnCoin(object sender, EventArgs e)
+        {
+            double minLeft = carMinLeft;
+            double maxLeft = carMaxLeft;
+            double randomLeft = minLeft + random.NextDouble() * (maxLeft - minLeft);
+
+            double top = -coinSize;
+
+            Coin newCoin = new Coin
+            {
+                Shape = new Ellipse
+                {
+                    Width = coinSize,
+                    Height = coinSize,
+                    Fill = new SolidColorBrush(Colors.Gold),
+                    Stroke = new SolidColorBrush(Colors.Orange),
+                    StrokeThickness = 2
+                },
+                X = randomLeft,
+                Y = top,
+                IsCollected = false
+            };
+
+            var gradient = new RadialGradientBrush();
+            gradient.GradientStops.Add(new GradientStop(Colors.Gold, 0));
+            gradient.GradientStops.Add(new GradientStop(Colors.Orange, 1));
+            newCoin.Shape.Fill = gradient;
+
+            TextBlock coinText = new TextBlock
+            {
+                Text = "💰",
+                FontSize = 20,
+                Foreground = new SolidColorBrush(Colors.DarkGoldenrod),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+
+            Canvas.SetLeft(newCoin.Shape, newCoin.X);
+            Canvas.SetTop(newCoin.Shape, newCoin.Y);
+            GameCanvas.Children.Add(newCoin.Shape);
+
+            coins.Add(newCoin);
+        }
+
+        private void UpdateCoinsPosition(double delta)
+        {
+            for (int i = coins.Count - 1; i >= 0; i--)
+            {
+                Coin coin = coins[i];
+                if (!coin.IsCollected)
+                {
+                    coin.Y += delta;
+
+                    if (coin.Y > GameCanvas.Height)
+                    {
+                        GameCanvas.Children.Remove(coin.Shape);
+                        coins.RemoveAt(i);
+                    }
+                    else
+                    {
+                        Canvas.SetTop(coin.Shape, coin.Y);
+                    }
+                }
+                else
+                {
+                    GameCanvas.Children.Remove(coin.Shape);
+                    coins.RemoveAt(i);
+                }
+            }
+        }
+
+        private void CheckCoinCollection()
+        {
+            double carLeft = Canvas.GetLeft(Car);
+            double carTop = Canvas.GetTop(Car);
+            double carRight = carLeft + Car.Width;
+            double carBottom = carTop + Car.Height;
+
+            for (int i = coins.Count - 1; i >= 0; i--)
+            {
+                Coin coin = coins[i];
+                if (!coin.IsCollected)
+                {
+                    double coinLeft = coin.X;
+                    double coinRight = coin.X + coinSize;
+                    double coinTop = coin.Y;
+                    double coinBottom = coin.Y + coinSize;
+
+                    if (carLeft < coinRight && carRight > coinLeft &&
+                        carTop < coinBottom && carBottom > coinTop)
+                    {
+
+                        coin.IsCollected = true;
+                        coinScore++;
+                        UpdateCoinDisplay();
+
+                        ShowCoinCollectEffect(coin.X, coin.Y);
+
+                    }
+                }
+            }
+        }
+
+        private void ShowCoinCollectEffect(double x, double y)
+        {
+            TextBlock effect = new TextBlock
+            {
+                Text = "+1 💰",
+                FontSize = 24,
+                FontWeight = FontWeights.Bold,
+                Foreground = new SolidColorBrush(Colors.Gold),
+                Opacity = 1
+            };
+
+            Canvas.SetLeft(effect, x);
+            Canvas.SetTop(effect, y);
+            GameCanvas.Children.Add(effect);
+
+            DispatcherTimer fadeTimer = new DispatcherTimer();
+            fadeTimer.Interval = TimeSpan.FromMilliseconds(50);
+            int fadeCount = 0;
+
+            fadeTimer.Tick += (s, e) =>
+            {
+                fadeCount++;
+                effect.Opacity -= 0.1;
+                Canvas.SetTop(effect, Canvas.GetTop(effect) - 2);
+
+                if (fadeCount >= 10)
+                {
+                    fadeTimer.Stop();
+                    GameCanvas.Children.Remove(effect);
+                }
+            };
+            fadeTimer.Start();
+
+            var originalLeft = Canvas.GetLeft(Car);
+            DispatcherTimer vibrateTimer = new DispatcherTimer();
+            vibrateTimer.Interval = TimeSpan.FromMilliseconds(30);
+            int vibrateCount = 0;
+
+            vibrateTimer.Tick += (v, ev) =>
+            {
+                vibrateCount++;
+                if (vibrateCount % 2 == 0)
+                    Canvas.SetLeft(Car, originalLeft + 2);
+                else
+                    Canvas.SetLeft(Car, originalLeft - 2);
+
+                if (vibrateCount >= 6)
+                {
+                    vibrateTimer.Stop();
+                    Canvas.SetLeft(Car, originalLeft);
+                }
+            };
+            vibrateTimer.Start();
+        }
+
+        private void UpdateCoinDisplay()
+        {
+            CoinCounterText.Text = $"💰 {coinScore}";
+
+            if (coinScore >= 10)
+                CoinCounterText.Foreground = new SolidColorBrush(Colors.LightGreen);
+            else if (coinScore >= 5)
+                CoinCounterText.Foreground = new SolidColorBrush(Colors.LightBlue);
+            else
+                CoinCounterText.Foreground = new SolidColorBrush(Colors.Gold);
         }
 
         private void UpdateSpeedDisplay()
         {
-            this.Title = $"Happy Game - Speed: {carSpeed:F1}";
+            this.Title = $"Happy Game - Speed: {carSpeed:F1} - Coins: {coinScore}";
         }
 
         protected override void OnClosed(EventArgs e)
@@ -188,6 +383,24 @@ namespace HappyGame
             {
                 speedChangeTimer.Stop();
             }
+            if (coinSpawnTimer != null)
+            {
+                coinSpawnTimer.Stop();
+            }
+
+            foreach (var coin in coins)
+            {
+                if (coin.Shape != null)
+                    GameCanvas.Children.Remove(coin.Shape);
+            }
+            coins.Clear();
         }
+    }
+    public class Coin
+    {
+        public System.Windows.Shapes.Shape Shape { get; set; }
+        public double X { get; set; }
+        public double Y { get; set; }
+        public bool IsCollected { get; set; }
     }
 }

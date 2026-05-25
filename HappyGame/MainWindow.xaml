@@ -6,9 +6,15 @@
         xmlns:local="clr-namespace:HappyGame"
         mc:Ignorable="d"
         Title="MainWindow" Height="650" Width="840" ResizeMode="NoResize" WindowStartupLocation="CenterScreen" WindowStyle="None" KeyDown="Window_KeyDown" >
-    <Canvas x:Name="GameCanvas" Width="840" Height="650" ClipToBounds="True">
+    <Canvas x:Name="GameCanvas" Width="840" Height="650" ClipToBounds="True" Focusable="True">
         <Image x:Name="Road" Canvas.Top="0" Height="650" Width="840" Source="/Images/road.png"/>
         <Image x:Name="RoadBack" Canvas.Top="-650" Height="650" Width="840" Source="/Images/road.png"/>
-        <Image x:Name="Car" Height="150" Width="200" Source="/Images/yellowcar.png"  Canvas.Left="320" Canvas.Top="474"/>
+        <Image x:Name="Car" Height="150" Width="200" Source="/Images/yellowcar.png" Canvas.Left="320" Canvas.Top="474"/>
+
+        <Border Canvas.Left="20" Canvas.Top="20" Background="Black" Opacity="0.7" CornerRadius="10" Padding="15,5">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock x:Name="CoinCounterText" Text="💰 0" FontSize="24" FontWeight="Bold" Foreground="Gold"/>
+            </StackPanel>
+        </Border>
     </Canvas>
 </Window>
